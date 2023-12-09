@@ -15,8 +15,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <cstdlib>   // 包含用于伪随机数生成的头文件
-#include <ctime>     // 包含用于获取当前时间的头文件
+#include <cstdlib>
+#include <ctime>
  
 typedef unsigned char BYTE;
 typedef unsigned int  WORD;
@@ -391,7 +391,7 @@ __device__ void cuda_keccak_final(cuda_keccak_ctx_t *ctx, BYTE *out)
     }
 }
 
-__global__ void calculate() {
+__global__ void calculate(int timestamp) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     BYTE data[32] = {0};
@@ -399,26 +399,13 @@ __global__ void calculate() {
 
     curandState state;
     curand_init((unsigned long long)clock() + tid, 0, 0, &state);
-    int block = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+4, &block, 4);
 
-    int block2 = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+8, &block, 4);
+    for (int i = 4; i < 56; i += 4) {
+        int block = (int)(curand_uniform_double(&state) * 1000000);
+        memcpy(data+(i)/2, &block, 4);
+    }
 
-    int block3 = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+12, &block, 4);
-
-    int block4 = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+16, &block, 4);
-
-    int block5 = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+20, &block, 4);
-
-    int block6 = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+24, &block, 4);
-
-    int block7 = (int)(curand_uniform_double(&state) * 1000000);
-    memcpy(data+28, &block, 4);
+    memcpy(data+28, &timestamp, 4);
 
     BYTE challenge[32] = {0};
     challenge[0] = 0x72;
@@ -427,28 +414,32 @@ __global__ void calculate() {
     challenge[3] = 0x48;
 
     BYTE hash[32] = {0};
+        
 
     for (int i=0; i <N; i++) {
-        memcpy(data+8, &i, 4);
+        memcpy(data+24, &i, 4);
         CUDA_KECCAK_CTX ctx;
+
         cuda_keccak_init(&ctx, 256);
         cuda_keccak_update(&ctx, data, 32);
         cuda_keccak_update(&ctx, challenge, 32);
         cuda_keccak_final(&ctx, hash);
 
-      if (hash[0] == 0x00 && hash[1] == 0x77 && hash[2] == 0x77 && hash[3] == 0x77 && hash[4] == 0x07) {
+      if (hash[0] == 0x00 && hash[1] == 0x77 && hash[2] == 0x77 && hash[3] == 0x77 && (hash[4] >= 0x70 && hash[4] <= 0x7f)) {
+          printf("0x");
           for (int j = 0; j < 32; j ++) {
             printf("%02x", data[j]);
           }
-          printf("tid = %d, block = %d, n = %d\n", tid, block, i);
+          printf("\n");
       }
     }
 
 }
 
 int main(int argc, char **argv) {
+    time_t currentUnixTime = std::time(nullptr);
     while (true) {
-      calculate<<<16, 256>>>();
+      calculate<<<27, 286>>>(static_cast<int>(currentUnixTime));
     }
     cudaDeviceSynchronize();  // not important
 }

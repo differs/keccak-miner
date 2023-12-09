@@ -1,0 +1,15 @@
+### minchen template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+*.sol
+*.txt
+.DS_Store
+*.exe
+.history
+.vscode
+nohup.out

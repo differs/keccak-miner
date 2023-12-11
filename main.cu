@@ -400,12 +400,12 @@ __global__ void calculate(int timestamp) {
     curandState state;
     curand_init((unsigned long long)clock() + tid, 0, 0, &state);
 
-    for (int i = 4; i < 56; i += 4) {
+    for (int i = 4; i < 64; i += 4) {
         int block = (int)(curand_uniform_double(&state) * 1000000);
         memcpy(data+(i)/2, &block, 4);
     }
 
-    memcpy(data+28, &timestamp, 4);
+    memcpy(data+20, &timestamp, 4);
 
     BYTE challenge[32] = {0};
     challenge[0] = 0x72;
@@ -417,7 +417,7 @@ __global__ void calculate(int timestamp) {
         
 
     for (int i=0; i <N; i++) {
-        memcpy(data+24, &i, 4);
+        memcpy(data+22, &i, 4);
         CUDA_KECCAK_CTX ctx;
 
         cuda_keccak_init(&ctx, 256);
@@ -425,7 +425,7 @@ __global__ void calculate(int timestamp) {
         cuda_keccak_update(&ctx, challenge, 32);
         cuda_keccak_final(&ctx, hash);
 
-      if (hash[0] == 0x00 && hash[1] == 0x77 && hash[2] == 0x77 && hash[3] == 0x77 && (hash[4] >= 0x70 && hash[4] <= 0x7f)) {
+      if (hash[0] == 0x00 && hash[1] == 0x77 && hash[2] == 0x77 && hash[3] == 0x77 && hash[4] = 0x77) {
           printf("0x");
           for (int j = 0; j < 32; j ++) {
             printf("%02x", data[j]);
@@ -437,9 +437,14 @@ __global__ void calculate(int timestamp) {
 }
 
 int main(int argc, char **argv) {
-    time_t currentUnixTime = std::time(nullptr);
+    int gpuid = 0;
+    if (argc == 2) {
+        gpuid = std::atoi(argv[1]);
+    }
+    cudaSetDevice(gpuid);
     while (true) {
-      calculate<<<27, 286>>>(static_cast<int>(currentUnixTime));
+            time_t currentUnixTime = std::time(nullptr);
+            calculate<<<27, 286>>>(static_cast<int>(currentUnixTime));
     }
     cudaDeviceSynchronize();  // not important
 }

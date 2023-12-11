@@ -425,7 +425,7 @@ __global__ void calculate(int timestamp) {
         cuda_keccak_update(&ctx, challenge, 32);
         cuda_keccak_final(&ctx, hash);
 
-      if (hash[0] == 0x00 && hash[1] == 0x77 && hash[2] == 0x77 && hash[3] == 0x77 && hash[4] = 0x77) {
+      if (hash[0] == 0x00 && hash[1] == 0x77 && hash[2] == 0x77 && hash[3] == 0x77 && hash[4] == 0x77 && hash[5] == 0x77) {
           printf("0x");
           for (int j = 0; j < 32; j ++) {
             printf("%02x", data[j]);
@@ -444,7 +444,7 @@ int main(int argc, char **argv) {
     cudaSetDevice(gpuid);
     while (true) {
             time_t currentUnixTime = std::time(nullptr);
-            calculate<<<27, 286>>>(static_cast<int>(currentUnixTime));
+            calculate<<<24, 256>>>(static_cast<int>(currentUnixTime));
     }
     cudaDeviceSynchronize();  // not important
 }
